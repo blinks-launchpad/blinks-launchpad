@@ -10,7 +10,13 @@ import {
   Connection,
   PublicKey,
   Transaction,
+  Keypair,
 } from "@solana/web3.js";
+import { 
+  createMint,
+  getOrCreateAssociatedTokenAccount,
+  TOKEN_PROGRAM_ID 
+} from "@solana/spl-token";
 
 const headers = createActionHeaders({
   chainId: "devnet", // or chainId: "devnet"
@@ -29,7 +35,7 @@ export const GET = async (req: Request) => {
         actions: [
           {
             label: "Launch your meme coin", // button text
-            href: `${baseHref}?tokenName={tokenName}&agentName={agentName}&prompt={prompt}`,
+            href: `${baseHref}?tokenName={tokenName}&agentName={agentName}&prompt={prompt}&mediaUrl={mediaUrl}`,
             type: "post",
             parameters: [
               {
@@ -41,8 +47,12 @@ export const GET = async (req: Request) => {
                 label: "Agent name",
               },
               {
+                name: "mediaUrl",
+                label: "Picture or video URL",
+              },
+              {
                 name: "prompt",
-                label: "AI agent prompt",
+                label: "Prompt the agent to help you create a meme",
                 type: "textarea",
               },
             ],
@@ -75,6 +85,14 @@ export const POST = async (req: Request) => {
     const params = requestUrl.searchParams;
     console.log(params);
 
+    const tokenName = params.get("tokenName");
+    const agentName = params.get("agentName");
+    const prompt = params.get("prompt");
+    const mediaUrl = params.get("mediaUrl");
+
+    // mock the other data required for meme creation
+    const tokenTicker = "MEME";
+
     const body: ActionPostRequest = await req.json();
 
     // validate the client provided input
@@ -87,6 +105,24 @@ export const POST = async (req: Request) => {
         headers,
       });
     }
+
+    // Create a connection to the Solana devnet
+    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+
+    // Generate a new keypair for the token's mint authority
+    const mintAuthority = Keypair.generate();
+
+    // Create a new token mint
+    const mint = await createMint(
+      connection,
+      mintAuthority, // payer
+      mintAuthority.publicKey, // mint authority
+      null, // freeze authority (none)
+      9 // decimals
+    );
+
+    // Log the new token's mint address
+    console.log("Token Mint Address:", mint.toBase58());
 
     const payload: ActionPostResponse = await createPostResponse({
       fields: {
