@@ -5,23 +5,33 @@ import {
   ActionGetResponse,
   ActionPostRequest,
 } from "@solana/actions";
+
 import {
   clusterApiUrl,
   Connection,
   PublicKey,
   Transaction,
   Keypair,
+  SystemProgram,
 } from "@solana/web3.js";
-import { 
-  createMint,
-  getOrCreateAssociatedTokenAccount,
-  TOKEN_PROGRAM_ID 
+
+import {
+  getMinimumBalanceForRentExemptMint,
+  MINT_SIZE,
+  TOKEN_PROGRAM_ID,
+  createInitializeMintInstruction,
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddress,
+  TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
+import { buildTokenCreationTransaction } from "./utils";
 
 const headers = createActionHeaders({
   chainId: "devnet", // or chainId: "devnet"
   actionVersion: "2.2.1", // the desired spec version
 });
+
+const INITIAL_MINT_AMOUNT = 1000000; // 1 million
 
 export const GET = async (req: Request) => {
   try {
@@ -35,7 +45,7 @@ export const GET = async (req: Request) => {
         actions: [
           {
             label: "Launch your meme coin", // button text
-            href: `${baseHref}?tokenName={tokenName}&agentName={agentName}&prompt={prompt}&mediaUrl={mediaUrl}`,
+            href: `${baseHref}?tokenName={tokenName}&agentName={agentName}&tokenTicker={tokenTicker}&prompt={prompt}&mediaUrl={mediaUrl}`,
             type: "post",
             parameters: [
               {
@@ -45,6 +55,10 @@ export const GET = async (req: Request) => {
               {
                 name: "agentName",
                 label: "Agent name",
+              },
+              {
+                name: "tokenTicker",
+                label: "Token ticker",
               },
               {
                 name: "mediaUrl",
@@ -87,11 +101,21 @@ export const POST = async (req: Request) => {
 
     const tokenName = params.get("tokenName");
     const agentName = params.get("agentName");
+    const tokenTicker = params.get("tokenTicker");
     const prompt = params.get("prompt");
     const mediaUrl = params.get("mediaUrl");
 
-    // mock the other data required for meme creation
-    const tokenTicker = "MEME";
+    if (!tokenName || !agentName || !tokenTicker || !prompt || !mediaUrl) {
+      return Response.json(
+        {
+          message: "All fields are required",
+        },
+        {
+          status: 400,
+          headers,
+        }
+      );
+    }
 
     const body: ActionPostRequest = await req.json();
 
@@ -100,33 +124,32 @@ export const POST = async (req: Request) => {
     try {
       account = new PublicKey(body.account);
     } catch (err) {
-      return new Response('Invalid "account" provided', {
-        status: 400,
-        headers,
-      });
+      return Response.json(
+        {
+          message: "Invalid account provided",
+        },
+        {
+          status: 400,
+          headers,
+        }
+      );
     }
 
-    // Create a connection to the Solana devnet
     const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-
-    // Generate a new keypair for the token's mint authority
-    const mintAuthority = Keypair.generate();
-
-    // Create a new token mint
-    const mint = await createMint(
-      connection,
-      mintAuthority, // payer
-      mintAuthority.publicKey, // mint authority
-      null, // freeze authority (none)
-      9 // decimals
+    const transaction = await buildTokenCreationTransaction(
+      account,
+      {
+        name: tokenName,
+        symbol: tokenTicker,
+        totalSupply: INITIAL_MINT_AMOUNT,
+        decimals: 9,
+      },
+      connection
     );
-
-    // Log the new token's mint address
-    console.log("Token Mint Address:", mint.toBase58());
 
     const payload: ActionPostResponse = await createPostResponse({
       fields: {
-        transaction: new Transaction(),
+        transaction,
         message: "Meme created",
         type: "transaction",
       },
@@ -139,9 +162,56 @@ export const POST = async (req: Request) => {
     console.error("ERROR", err);
     let message = "An unknown error occurred";
     if (typeof err == "string") message = err;
-    return new Response(message, {
-      status: 400,
-      headers,
-    });
+    return Response.json(
+      {
+        message,
+      },
+      {
+        status: 400,
+        headers,
+      }
+    );
   }
 };
+
+async function buildCreateMintTransaction(
+  connection: Connection,
+  payer: PublicKey,
+  decimals: number
+): Promise<Transaction> {
+  const lamports = await getMinimumBalanceForRentExemptMint(connection);
+  const accountKeypair = Keypair.generate();
+  const programId = TOKEN_2022_PROGRAM_ID;
+
+  const associatedTokenAddress = await getAssociatedTokenAddress(
+    accountKeypair.publicKey,
+    payer,
+    false
+  );
+
+  const transaction = new Transaction().add(
+    SystemProgram.createAccount({
+      fromPubkey: payer,
+      newAccountPubkey: accountKeypair.publicKey,
+      space: MINT_SIZE,
+      lamports,
+      programId,
+    }),
+    createInitializeMintInstruction(
+      accountKeypair.publicKey,
+      decimals,
+      payer,
+      payer,
+      programId
+    ),
+    createAssociatedTokenAccountInstruction(
+      payer,
+      associatedTokenAddress,
+      payer,
+      accountKeypair.publicKey,
+      programId
+    )
+  );
+
+  return transaction;
+}
