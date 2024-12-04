@@ -135,7 +135,7 @@ export const POST = async (req: Request) => {
       );
     }
 
-    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+    const connection = new Connection("http://localhost:8899", "confirmed");
     const transaction = await buildTokenCreationTransaction(
       account,
       {
@@ -146,6 +146,13 @@ export const POST = async (req: Request) => {
       },
       connection
     );
+
+    // set the end user as the fee payer
+    transaction.feePayer = account;
+
+    transaction.recentBlockhash = (
+      await connection.getLatestBlockhash()
+    ).blockhash;
 
     const payload: ActionPostResponse = await createPostResponse({
       fields: {
