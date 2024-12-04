@@ -1,37 +1,12 @@
 import {
   ActionPostResponse,
-  createActionHeaders,
   createPostResponse,
   ActionGetResponse,
   ActionPostRequest,
 } from "@solana/actions";
-
-import {
-  clusterApiUrl,
-  Connection,
-  PublicKey,
-  Transaction,
-  Keypair,
-  SystemProgram,
-} from "@solana/web3.js";
-
-import {
-  getMinimumBalanceForRentExemptMint,
-  MINT_SIZE,
-  TOKEN_PROGRAM_ID,
-  createInitializeMintInstruction,
-  createAssociatedTokenAccountInstruction,
-  getAssociatedTokenAddress,
-  TOKEN_2022_PROGRAM_ID,
-} from "@solana/spl-token";
-import { buildTokenCreationTransaction } from "./utils";
-
-const headers = createActionHeaders({
-  chainId: "devnet", // or chainId: "devnet"
-  actionVersion: "2.2.1", // the desired spec version
-});
-
-const INITIAL_MINT_AMOUNT = 1000000; // 1 million
+import { Connection, PublicKey } from "@solana/web3.js";
+import { buildCreateMintTransaction } from "../transactions";
+import { actionHeaders } from "../utils";
 
 export const GET = async (req: Request) => {
   try {
@@ -44,7 +19,7 @@ export const GET = async (req: Request) => {
       links: {
         actions: [
           {
-            label: "Launch your meme coin", // button text
+            label: "Create your meme coin", // button text
             href: `${baseHref}?tokenName={tokenName}&agentName={agentName}&tokenTicker={tokenTicker}&prompt={prompt}&mediaUrl={mediaUrl}`,
             type: "post",
             parameters: [
@@ -76,7 +51,7 @@ export const GET = async (req: Request) => {
     };
 
     return Response.json(payload, {
-      headers,
+      headers: actionHeaders,
     });
   } catch (err) {
     console.error(err);
@@ -85,7 +60,7 @@ export const GET = async (req: Request) => {
     if (typeof err == "string") message = err;
     return new Response(message, {
       status: 400,
-      headers,
+      headers: actionHeaders,
     });
   }
 };
@@ -97,7 +72,6 @@ export const POST = async (req: Request) => {
     const requestUrl = new URL(req.url);
 
     const params = requestUrl.searchParams;
-    console.log(params);
 
     const tokenName = params.get("tokenName");
     const agentName = params.get("agentName");
@@ -112,7 +86,7 @@ export const POST = async (req: Request) => {
         },
         {
           status: 400,
-          headers,
+          headers: actionHeaders,
         }
       );
     }
@@ -130,21 +104,17 @@ export const POST = async (req: Request) => {
         },
         {
           status: 400,
-          headers,
+          headers: actionHeaders,
         }
       );
     }
 
     const connection = new Connection("http://localhost:8899", "confirmed");
-    const transaction = await buildTokenCreationTransaction(
+
+    const transaction = await buildCreateMintTransaction(
+      connection,
       account,
-      {
-        name: tokenName,
-        symbol: tokenTicker,
-        totalSupply: INITIAL_MINT_AMOUNT,
-        decimals: 9,
-      },
-      connection
+      9
     );
 
     // set the end user as the fee payer
@@ -163,7 +133,7 @@ export const POST = async (req: Request) => {
     });
 
     return Response.json(payload, {
-      headers,
+      headers: actionHeaders,
     });
   } catch (err) {
     console.error("ERROR", err);
@@ -175,50 +145,8 @@ export const POST = async (req: Request) => {
       },
       {
         status: 400,
-        headers,
+        headers: actionHeaders,
       }
     );
   }
 };
-
-async function buildCreateMintTransaction(
-  connection: Connection,
-  payer: PublicKey,
-  decimals: number
-): Promise<Transaction> {
-  const lamports = await getMinimumBalanceForRentExemptMint(connection);
-  const accountKeypair = Keypair.generate();
-  const programId = TOKEN_2022_PROGRAM_ID;
-
-  const associatedTokenAddress = await getAssociatedTokenAddress(
-    accountKeypair.publicKey,
-    payer,
-    false
-  );
-
-  const transaction = new Transaction().add(
-    SystemProgram.createAccount({
-      fromPubkey: payer,
-      newAccountPubkey: accountKeypair.publicKey,
-      space: MINT_SIZE,
-      lamports,
-      programId,
-    }),
-    createInitializeMintInstruction(
-      accountKeypair.publicKey,
-      decimals,
-      payer,
-      payer,
-      programId
-    ),
-    createAssociatedTokenAccountInstruction(
-      payer,
-      associatedTokenAddress,
-      payer,
-      accountKeypair.publicKey,
-      programId
-    )
-  );
-
-  return transaction;
-}
