@@ -4,8 +4,14 @@ import {
   ActionGetResponse,
   ActionPostRequest,
 } from "@solana/actions";
-import { clusterApiUrl, Connection, LAMPORTS_PER_SOL, PublicKey, SystemInstruction, SystemProgram, Transaction } from "@solana/web3.js";
-import { buildCreateMintTransaction } from "../transactions";
+import {
+  clusterApiUrl,
+  Connection,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
 import { actionErrorResponse, actionHeaders, getElizaUrl } from "../utils";
 
 export const GET = async (req: Request) => {
