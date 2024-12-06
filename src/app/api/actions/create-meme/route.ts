@@ -13,7 +13,7 @@ export const GET = async (req: Request) => {
     const baseHref = "/api/actions/create-meme";
     const payload: ActionGetResponse = {
       title: "Launch your own agent meme coin",
-      icon: "https://ucarecdn.com/7aa46c85-08a4-4bc7-9376-88ec48bb1f43/-/preview/880x864/-/quality/smart/-/format/auto/",
+      icon: "https://pbs.twimg.com/profile_images/1864314913881247749/8Hpvmc43.jpg",
       description: "Launch your own agent meme coin",
       label: "Launch",
       links: {
@@ -25,24 +25,53 @@ export const GET = async (req: Request) => {
             parameters: [
               {
                 name: "tokenName",
-                label: "Token name",
+                label: "Token name (e.g. 'My Meme Coin')",
+                required: true,
               },
               {
                 name: "agentName",
-                label: "Agent name",
+                label: "Agent name (e.g. 'My Meme Bot')",
+                required: true,
+              },
+              {
+                name: "solToSpend",
+                label: "SOL to spend on creating meme (1, 0.1, 0.01)",
+                required: true,
               },
               {
                 name: "tokenTicker",
-                label: "Token ticker",
+                label: "Token ticker (e.g. 'MEME')",
+                required: true,
               },
               {
                 name: "mediaUrl",
-                label: "Picture or video URL",
+                label: "Agent profile picture or video URL",
+                required: true,
               },
               {
                 name: "prompt",
                 label: "Prompt the agent to help you create a meme",
                 type: "textarea",
+                required: true,
+              },
+              {
+                name: "twitterUsername",
+                label: "Twitter Username (for tweeting the meme)",
+                required: true,
+              },
+              {
+                name: "twitterEmail",
+                label: "Twitter Email (for tweeting the meme)",
+                required: true,
+              },
+              {
+                name: "twitterPassword",
+                label: "Twitter Password (for tweeting the meme)",
+                required: true,
+              },
+              {
+                name: "telegramToken",
+                label: "Telegram Token (for sending the meme)",
               },
             ],
           },
@@ -69,6 +98,8 @@ export const OPTIONS = GET;
 
 export const POST = async (req: Request) => {
   try {
+    const body: ActionPostRequest = await req.json();
+
     const requestUrl = new URL(req.url);
 
     const params = requestUrl.searchParams;
@@ -91,7 +122,28 @@ export const POST = async (req: Request) => {
       );
     }
 
-    const body: ActionPostRequest = await req.json();
+    // 创建 agent twitter
+    const response = await fetch("http://localhost:3000/MemeVerse/form", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        tokenName,
+        agentName,
+        tokenTicker,
+        prompt,
+        mediaUrl,
+        ...body.data,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to submit config");
+    }
+
+    const data = await response.json();
 
     // validate the client provided input
     let account: PublicKey;
@@ -109,7 +161,10 @@ export const POST = async (req: Request) => {
       );
     }
 
-    const connection = new Connection("http://localhost:8899", "confirmed");
+    const connection = new Connection(
+      "https://api.devnet.solana.com",
+      "confirmed"
+    );
 
     const transaction = await buildCreateMintTransaction(
       connection,
@@ -138,7 +193,7 @@ export const POST = async (req: Request) => {
               title: "Create token account",
               type: "action",
               description: "Create an account for the token",
-            }
+            },
           },
         },
       },
