@@ -4,9 +4,9 @@ import {
   ActionGetResponse,
   ActionPostRequest,
 } from "@solana/actions";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { clusterApiUrl, Connection, LAMPORTS_PER_SOL, PublicKey, SystemInstruction, SystemProgram, Transaction } from "@solana/web3.js";
 import { buildCreateMintTransaction } from "../transactions";
-import { actionHeaders } from "../utils";
+import { actionErrorResponse, actionHeaders, getElizaUrl } from "../utils";
 
 export const GET = async (req: Request) => {
   try {
@@ -20,7 +20,7 @@ export const GET = async (req: Request) => {
         actions: [
           {
             label: "Create your meme coin", // button text
-            href: `${baseHref}?tokenName={tokenName}&agentName={agentName}&tokenTicker={tokenTicker}&prompt={prompt}&mediaUrl={mediaUrl}`,
+            href: `${baseHref}?tokenName={tokenName}&agentName={agentName}&solToSpend={solToSpend}&tokenTicker={tokenTicker}&mediaUrl={mediaUrl}&bio={bio}&lore={lore}&style={style}&knowledge={knowledge}&adjectives={adjectives}&twitterUsername={twitterUsername}&twitterEmail={twitterEmail}&twitterPassword={twitterPassword}&telegramToken={telegramToken}`,
             type: "post",
             parameters: [
               {
@@ -35,7 +35,7 @@ export const GET = async (req: Request) => {
               },
               {
                 name: "solToSpend",
-                label: "SOL to spend on creating meme (1, 0.1, 0.01)",
+                label: "The initial fee sent to the agent",
                 required: true,
               },
               {
@@ -108,13 +108,9 @@ export const GET = async (req: Request) => {
     });
   } catch (err) {
     console.error(err);
-
     let message = "An unknown error occurred";
     if (typeof err == "string") message = err;
-    return new Response(message, {
-      status: 400,
-      headers: actionHeaders,
-    });
+    return actionErrorResponse(message);
   }
 };
 
@@ -127,27 +123,53 @@ export const POST = async (req: Request) => {
     const requestUrl = new URL(req.url);
 
     const params = requestUrl.searchParams;
+    console.log(params);
 
     const tokenName = params.get("tokenName");
     const agentName = params.get("agentName");
+    const solToSpend = params.get("solToSpend");
     const tokenTicker = params.get("tokenTicker");
-    const prompt = params.get("prompt");
     const mediaUrl = params.get("mediaUrl");
+    const bio = params.get("bio");
+    const lore = params.get("lore");
+    const style = params.get("style");
+    const knowledge = params.get("knowledge");
+    const adjectives = params.get("adjectives");
+    const twitterUsername = params.get("twitterUsername");
+    const twitterEmail = params.get("twitterEmail");
+    const twitterPassword = params.get("twitterPassword");
+    const telegramToken = params.get("telegramToken");
 
-    if (!tokenName || !agentName || !tokenTicker || !prompt || !mediaUrl) {
-      return Response.json(
-        {
-          message: "All fields are required",
-        },
-        {
-          status: 400,
-          headers: actionHeaders,
-        }
-      );
+    if (
+      !tokenName ||
+      !agentName ||
+      !solToSpend ||
+      !tokenTicker ||
+      !mediaUrl ||
+      !bio ||
+      !lore ||
+      !style ||
+      !knowledge ||
+      !adjectives ||
+      !twitterUsername ||
+      !twitterEmail ||
+      !twitterPassword ||
+      !telegramToken
+    ) {
+      return actionErrorResponse("All fields are required");
+    }
+
+    const solToSpendNumber = parseFloat(solToSpend);
+    if (isNaN(solToSpendNumber)) {
+      return actionErrorResponse("Invalid SOL amount provided");
+    }
+
+    if (solToSpendNumber <= 0) {
+      return actionErrorResponse("SOL amount must be greater than 0");
     }
 
     // 创建 agent twitter
-    const response = await fetch("http://localhost:3000/MemeVerse/form", {
+    const response = await fetch(getElizaUrl("/MemeVerse/form"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -169,31 +191,30 @@ export const POST = async (req: Request) => {
 
     const data = await response.json();
 
+    if (!data.publicKey) {
+      throw new Error("Failed to create agent");
+    }
+
+    const agentPublicKey = new PublicKey(data.publicKey);
+
     // validate the client provided input
     let account: PublicKey;
     try {
       account = new PublicKey(body.account);
     } catch (err) {
-      return Response.json(
-        {
-          message: "Invalid account provided",
-        },
-        {
-          status: 400,
-          headers: actionHeaders,
-        }
-      );
+      return actionErrorResponse("Invalid account provided");
     }
 
-    const connection = new Connection(
-      "https://api.devnet.solana.com",
-      "confirmed"
-    );
+    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+    const transaction = new Transaction();
 
-    const transaction = await buildCreateMintTransaction(
-      connection,
-      account,
-      9
+    // Send some SOL to the agent wallet
+    transaction.add(
+      SystemProgram.transfer({
+        fromPubkey: account,
+        toPubkey: agentPublicKey,
+        lamports: BigInt(solToSpendNumber * LAMPORTS_PER_SOL),
+      })
     );
 
     // set the end user as the fee payer
@@ -206,20 +227,8 @@ export const POST = async (req: Request) => {
     const payload: ActionPostResponse = await createPostResponse({
       fields: {
         transaction,
-        message: "Meme created",
+        message: "Agent launched",
         type: "transaction",
-        links: {
-          next: {
-            type: "inline",
-            action: {
-              icon: "https://ucarecdn.com/7aa46c85-08a4-4bc7-9376-88ec48bb1f43/-/preview/880x864/-/quality/smart/-/format/auto/",
-              label: "Create",
-              title: "Create token account",
-              type: "action",
-              description: "Create an account for the token",
-            },
-          },
-        },
       },
     });
 
@@ -228,16 +237,8 @@ export const POST = async (req: Request) => {
     });
   } catch (err) {
     console.error("ERROR", err);
-    let message = "An unknown error occurred";
+    let message = "Failed to launch agent";
     if (typeof err == "string") message = err;
-    return Response.json(
-      {
-        message,
-      },
-      {
-        status: 400,
-        headers: actionHeaders,
-      }
-    );
+    return actionErrorResponse(message);
   }
 };
