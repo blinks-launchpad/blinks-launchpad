@@ -30,6 +30,12 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # Generate .env
+      - name: Generate .env
+        run: |
+          touch .env
+          echo "NEXT_PUBLIC_PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" >> .env
+          echo "NEXT_PUBLIC_HELIUS_RPC_URL=${{ secrets.HELIUS_RPC_URL }}" >> .env
       # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -55,6 +61,7 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
   deploy-to-server:
     needs: build-and-push-image
     runs-on: ubuntu-latest
