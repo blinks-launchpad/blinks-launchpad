@@ -227,7 +227,7 @@ export const POST = async (req: Request) => {
       return actionErrorResponse("Invalid account provided");
     }
 
-    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+    const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
     const transaction = new Transaction();
 
     // Send some SOL to the agent wallet
