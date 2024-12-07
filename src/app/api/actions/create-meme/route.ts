@@ -12,14 +12,14 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
-import { actionErrorResponse, actionHeaders, getElizaUrl } from "../utils";
+import { actionErrorResponse, actionHeaders, getElizaUrl, iconUrl } from "../utils";
 
 export const GET = async (req: Request) => {
   try {
     const baseHref = "/api/actions/create-meme";
     const payload: ActionGetResponse = {
       title: "Launch your own agent meme coin",
-      icon: "https://pbs.twimg.com/profile_images/1864314913881247749/8Hpvmc43.jpg",
+      icon: iconUrl,
       description: "Launch your own agent meme coin",
       label: "Launch",
       links: {
@@ -129,7 +129,6 @@ export const POST = async (req: Request) => {
     const requestUrl = new URL(req.url);
 
     const params = requestUrl.searchParams;
-    console.log(params);
 
     const tokenName = params.get("tokenName");
     const agentName = params.get("agentName");
