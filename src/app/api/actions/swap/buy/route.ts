@@ -1,5 +1,5 @@
 import { ActionGetResponse, ActionPostRequest, ActionPostResponse, createPostResponse } from "@solana/actions";
-import { actionErrorResponse, actionHeaders, iconUrl } from "../../utils";
+import { actionErrorResponse, actionHeaders, getProvider, iconUrl } from "../../utils";
 import {
   clusterApiUrl,
   Connection,
@@ -10,6 +10,8 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
+import axios from "axios";
+import { DEFAULT_DECIMALS, PumpFunSDK } from "pumpdotfun-sdk";
 
 export const GET = async (req: Request) => {
   const params = new URL(req.url).searchParams;
@@ -91,8 +93,10 @@ export const POST = async (req: Request) => {
   }
 
   let account: PublicKey;
+  let tokenMint: PublicKey;
   try {
     account = new PublicKey(body.account);
+    tokenMint = new PublicKey(token);
   } catch (e) {
     console.error(e);
     return actionErrorResponse("Invalid account provided");
@@ -104,31 +108,34 @@ export const POST = async (req: Request) => {
     const keypair = Keypair.fromSecretKey(bs58.decode(privateKey));
 
     const connection = new Connection(
-      clusterApiUrl("mainnet-beta"),
+      process.env.NEXT_PUBLIC_HELIUS_RPC_URL!,
       "confirmed"
     );
 
     try {
-      const res = await fetch("https://rpc.api-pump.fun/trade", {
-        method: "POST",
-        body: JSON.stringify({
-          mode: "buy",
-          token,
-          amount: amountNumber * 0.95 * LAMPORTS_PER_SOL,
-          amountInSol: true,
-          slippage: 0.05,
-          priorityFee: 100000,
-          private: privateKey,
-        }),
-      });
+      const provider = getProvider();
+      const sdk = new PumpFunSDK(provider);
 
-      if (res.status !== 200) {
-        console.error(res);
-        throw new Error("Trade request failed");
+      const buyResults = await sdk.buy(
+        keypair,
+        tokenMint,
+        BigInt(amountNumber * 0.95 * LAMPORTS_PER_SOL),
+        BigInt(100),
+        {
+          unitLimit: 250000,
+          unitPrice: 250000,
+        }
+      );
+
+      if (buyResults.success) {
+        console.log(
+          "Bonding curve after buy",
+          await sdk.getBondingCurveAccount(tokenMint)
+        );
+      } else {
+        console.log("Buy failed");
+        return actionErrorResponse("Buy failed");
       }
-
-      const data = await res.json();
-      console.log({ data });
     } catch (e) {
       console.error(e);
       return actionErrorResponse("Failed to buy Meme coin");

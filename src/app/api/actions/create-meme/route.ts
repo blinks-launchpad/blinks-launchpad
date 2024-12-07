@@ -227,7 +227,10 @@ export const POST = async (req: Request) => {
       return actionErrorResponse("Invalid account provided");
     }
 
-    const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
+    const connection = new Connection(
+      process.env.NEXT_PUBLIC_HELIUS_RPC_URL!,
+      "confirmed"
+    );
     const transaction = new Transaction();
 
     // Send some SOL to the agent wallet
