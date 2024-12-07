@@ -1,5 +1,5 @@
 import { ActionGetResponse, ActionPostRequest, ActionPostResponse, createPostResponse } from "@solana/actions";
-import { actionErrorResponse, actionHeaders, getProvider, iconUrl } from "../../utils";
+import { actionErrorResponse, actionHeaders, getProvider, getSplTokenBalance, iconUrl, transferSplTokens } from "../../utils";
 import {
   clusterApiUrl,
   Connection,
@@ -136,6 +136,25 @@ export const POST = async (req: Request) => {
         console.log("Buy failed");
         return actionErrorResponse("Buy failed");
       }
+
+      // Transfer all the spl tokens to the user
+      const balance = await getSplTokenBalance(
+        connection,
+        keypair,
+        tokenMint,
+        keypair.publicKey
+      );
+
+      console.log({ balance });
+
+      await transferSplTokens(
+        connection,
+        keypair,
+        keypair,
+        account,
+        tokenMint,
+        balance
+      );
     } catch (e) {
       console.error(e);
       return actionErrorResponse("Failed to buy Meme coin");
