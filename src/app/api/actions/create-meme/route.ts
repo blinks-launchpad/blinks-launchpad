@@ -29,58 +29,67 @@ export const GET = async (req: Request) => {
             href: `${baseHref}?tokenName={tokenName}&agentName={agentName}&solToSpend={solToSpend}&tokenTicker={tokenTicker}&mediaUrl={mediaUrl}&bio={bio}&lore={lore}&style={style}&knowledge={knowledge}&adjectives={adjectives}&twitterUsername={twitterUsername}&twitterEmail={twitterEmail}&twitterPassword={twitterPassword}&telegramToken={telegramToken}`,
             type: "post",
             parameters: [
-              {
-                name: "tokenName",
-                label: "Token name (e.g. 'My Meme Coin')",
-                required: true,
-              },
-              {
-                name: "agentName",
-                label: "Agent name (e.g. 'My Meme Bot')",
-                required: true,
-              },
-              {
-                name: "solToSpend",
-                label: "The initial fee sent to the agent",
-                required: true,
-              },
-              {
-                name: "tokenTicker",
-                label: "Token ticker (e.g. 'MEME')",
-                required: true,
-              },
+              // {
+              //   name: "tokenName",
+              //   label: "Token name (e.g. 'My Meme Coin')",
+              //   required: true,
+              // },
+              // {
+              //   name: "agentName",
+              //   label: "Agent name (e.g. 'My Meme Bot')",
+              //   required: true,
+              // },
+              // {
+              //   name: "solToSpend",
+              //   type: "number",
+              //   label: "The initial fee sent to the agent",
+              //   required: true,
+              // },
+              // {
+              //   name: "tokenTicker",
+              //   label: "Token ticker (e.g. 'MEME')",
+              //   required: true,
+              // },
               {
                 name: "mediaUrl",
+                type: "url",
                 label: "Agent profile picture or video URL",
                 required: true,
               },
+              // {
+              //   name: "bio",
+              //   label: "Write a brief overview of your AI Agent",
+              //   type: "textarea",
+              //   required: true,
+              // },
+              // {
+              //   name: "lore",
+              //   label: "Write lore about your agent. Separate by ,'s",
+              //   type: "textarea",
+              //   required: true,
+              // },
+              // {
+              //   name: "style",
+              //   label: "Write your agent's response style. Separate by ,'s",
+              //   type: "textarea",
+              //   required: true,
+              // },
+              // {
+              //   name: "knowledge",
+              //   label: "Give your agent some knowledge. Separate by ,'s",
+              //   type: "textarea",
+              //   required: true,
+              // },
+              // {
+              //   name: "adjectives",
+              //   label: "Give your agent some adjectives. Separate by ,'s",
+              //   type: "textarea",
+              //   required: true,
+              // },
               {
-                name: "bio",
-                label: "Write a brief overview of your AI Agent",
-                type: "textarea",
-                required: true,
-              },
-              {
-                name: "lore",
-                label: "Write lore about your agent. Separate by ,'s",
-                type: "textarea",
-                required: true,
-              },
-              {
-                name: "style",
-                label: "Write your agent's response style. Separate by ,'s",
-                type: "textarea",
-                required: true,
-              },
-              {
-                name: "knowledge",
-                label: "Give your agent some knowledge. Separate by ,'s",
-                type: "textarea",
-                required: true,
-              },
-              {
-                name: "adjectives",
-                label: "Give your agent some adjectives. Separate by ,'s",
+                name: "prompt",
+                label:
+                  "Create token with name, symbol, description and image generation description. (e.g. 'Create GLITCHIZA token, generate description and image, buy 0.00069 SOL worth')",
                 type: "textarea",
                 required: true,
               },
@@ -158,19 +167,18 @@ export const POST = async (req: Request) => {
       !adjectives ||
       !twitterUsername ||
       !twitterEmail ||
-      !twitterPassword ||
-      !telegramToken
+      !twitterPassword
     ) {
-      return actionErrorResponse("All fields are required");
+      // return actionErrorResponse("All fields are required");
     }
 
-    const solToSpendNumber = parseFloat(solToSpend);
+    const solToSpendNumber = parseFloat(solToSpend || "0");
     if (isNaN(solToSpendNumber)) {
-      return actionErrorResponse("Invalid SOL amount provided");
+      // return actionErrorResponse("Invalid SOL amount provided");
     }
 
     if (solToSpendNumber <= 0) {
-      return actionErrorResponse("SOL amount must be greater than 0");
+      // return actionErrorResponse("SOL amount must be greater than 0");
     }
 
     // 创建 agent twitter
@@ -183,9 +191,18 @@ export const POST = async (req: Request) => {
       body: JSON.stringify({
         tokenName,
         agentName,
+        solToSpend,
         tokenTicker,
-        prompt,
         mediaUrl,
+        bio,
+        lore,
+        style,
+        knowledge,
+        adjectives,
+        twitterUsername,
+        twitterEmail,
+        twitterPassword,
+        telegramToken,
         ...body.data,
       }),
     });
