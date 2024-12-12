@@ -36,7 +36,6 @@ jobs:
           touch .env
           echo "NEXT_PUBLIC_PRIVATE_KEY=${{ secrets.PRIVATE_KEY }}" >> .env
           echo "NEXT_PUBLIC_HELIUS_RPC_URL=${{ secrets.HELIUS_RPC_URL }}" >> .env
-          echo "NEXT_PUBLIC_ELIZA_BASE_URL=http://localhost:5000" >> .env
       # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
       - name: Extract metadata (tags, labels) for Docker
         id: meta
@@ -73,4 +72,4 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          script: bash update-bl.sh
+          script: bash update-eliza.sh

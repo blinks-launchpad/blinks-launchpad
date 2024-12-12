@@ -1,0 +1,60 @@
+services:
+  web:
+    image: ghcr.io/blinks-launchpad/blinks-launchpad:main
+    container_name: blinks-launchpad-web
+    pull_policy: always
+    ports:
+      - "3000:3000"
+    environment:
+      - ELIZA_BASE_URL=http://tee:5000
+    depends_on:
+      - tee
+
+  tee:
+    image: ghcr.io/blinks-launchpad/eliza:main
+    container_name: blinks-launchpad-eliza
+    pull_policy: always
+    command: ["pnpm", "start", "--character='../characters/meme.character.json'"]
+    ports:
+      - "5000:3000"
+    stdin_open: true
+    tty: true
+    volumes:
+      - /var/run/tappd.sock:/var/run/tappd.sock
+      - tee:/app/packages/client-twitter/src/tweetcache
+      - tee:/app/db.sqlite
+    env_file:
+      - .env
+    environment:
+      - OPENAI_API_KEY=
+      - REDPILL_API_KEY=sk-42oA7mOerN10F7N7DZxun8hgRBsMR0cEGvOKVPN8e0gXv3zL
+      - REDPILL_MODEL=gpt-4o
+      - ELEVENLABS_XI_API_KEY=
+      - ELEVENLABS_MODEL_ID=eleven_multilingual_v2
+      - ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+      - ELEVENLABS_VOICE_STABILITY=0.5
+      - ELEVENLABS_VOICE_SIMILARITY_BOOST=0.9
+      - ELEVENLABS_VOICE_STYLE=0.66
+      - ELEVENLABS_VOICE_USE_SPEAKER_BOOST=false
+      - ELEVENLABS_OPTIMIZE_STREAMING_LATENCY=4
+      - ELEVENLABS_OUTPUT_FORMAT=pcm_16000
+      - TWITTER_DRY_RUN=false
+      - TWITTER_USERNAME=aimemeinablink
+      - TWITTER_PASSWORD=aimeme111
+      - TWITTER_EMAIL=aimemeinablink@gmail.com
+      - POST_IMMEDIATELY=1
+      - X_SERVER_URL=https://api.red-pill.ai/v1
+      - BIRDEYE_API_KEY=
+      - SOL_ADDRESS=So11111111111111111111111111111111111111112
+      - SLIPPAGE=1
+      - BASE_MINT=So11111111111111111111111111111111111111112
+      - RPC_URL=https://api.mainnet-beta.solana.com
+      - HELIUS_API_KEY=
+      - SERVER_PORT=3000
+      - WALLET_SECRET_SALT=secret_salt
+      # wallet public and private keys are stored in .env
+      # - WALLET_PUBLIC_KEY=
+      # - WALLET_PRIVATE_KEY=
+
+volumes:
+  tee:

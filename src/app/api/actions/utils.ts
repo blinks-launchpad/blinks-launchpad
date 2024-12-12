@@ -28,7 +28,7 @@ export const actionErrorResponse = (message: string) => {
 
 export const getElizaUrl = (path: string) => {
   if (!path.startsWith("/")) path = `/${path}`;
-  const baseUrl = process.env.NEXT_PUBLIC_ELIZA_BASE_URL;
+  const baseUrl = process.env.ELIZA_BASE_URL;
   return `${baseUrl}${path}`;
 };
 
