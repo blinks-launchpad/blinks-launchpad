@@ -1,13 +1,24 @@
 import { AnchorProvider } from "@coral-xyz/anchor";
-import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, sendAndConfirmTransaction, Transaction } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+  sendAndConfirmTransaction,
+  Transaction,
+} from "@solana/web3.js";
 import { createActionHeaders } from "@solana/actions";
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
-import { createTransferInstruction, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import {
+  createTransferInstruction,
+  getOrCreateAssociatedTokenAccount,
+  mintTo,
+} from "@solana/spl-token";
 import { DEFAULT_DECIMALS } from "pumpdotfun-sdk";
 
 export const iconUrl =
-  "https://pbs.twimg.com/profile_images/1864314913881247749/8Hpvmc43.jpg";
+  "https://cyan-acute-python-533.mypinata.cloud/ipfs/QmQH3rfuHFLjpLJy7hqqRcshHYjB8WGi6xfCU63PYVdRs5";
 
 export const actionHeaders = createActionHeaders({
   chainId: "mainnet", // or chainId: "devnet"
@@ -34,7 +45,9 @@ export const getElizaUrl = (path: string) => {
 
 export const getProvider = () => {
   const privateKey = process.env.NEXT_PUBLIC_PRIVATE_KEY!;
-  const keypair = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(privateKey)));
+  const keypair = Keypair.fromSecretKey(
+    Uint8Array.from(bs58.decode(privateKey))
+  );
   const connection = new Connection(process.env.NEXT_PUBLIC_HELIUS_RPC_URL!);
   const provider = new AnchorProvider(connection, new NodeWallet(keypair), {
     commitment: "finalized",
@@ -69,7 +82,7 @@ export async function transferSplTokens(
       fromTokenAccount.address,
       toTokenAccount.address,
       fromWallet.publicKey,
-      amount * (10 ** DEFAULT_DECIMALS),
+      amount * 10 ** DEFAULT_DECIMALS,
       []
     )
   );

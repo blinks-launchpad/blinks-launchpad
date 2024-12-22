@@ -3,7 +3,7 @@ import {
   ActionPostRequest,
   ActionPostResponse,
 } from "@solana/actions";
-import { actionErrorResponse, actionHeaders } from "../utils";
+import { actionErrorResponse, actionHeaders, iconUrl } from "../utils";
 import axios from "axios";
 import { initSdk } from "@/lib/raydium/config";
 import { PublicKey } from "@solana/web3.js";
@@ -52,7 +52,7 @@ export const GET = async (req: Request) => {
   if (!inputToken || !outputToken) {
     const missingMint = inputToken ? outputMint : inputMint;
     const payload: ActionGetResponse = {
-      icon: "https://img-v1.raydium.io/share/b11dae84-5676-453c-9989-e17d021a1fc2.png",
+      icon: iconUrl,
       title: `Token not found in Raydium`,
       description: `Token with mint ${missingMint} not found in Raydium. Please create a pool for your token first.`,
       label: `OK`,
@@ -70,7 +70,7 @@ export const GET = async (req: Request) => {
   console.log(`swapping ${inputSymbol} for ${outputSymbol}`);
 
   const payload: ActionGetResponse = {
-    icon: "https://img-v1.raydium.io/share/b11dae84-5676-453c-9989-e17d021a1fc2.png",
+    icon: iconUrl,
     title: `Buy ${outputSymbol} with ${inputSymbol}`,
     description:
       `Choose a ${inputSymbol} amount from the options below or enter a custom amount.`,
