@@ -34,7 +34,7 @@ export const getElizaUrl = (path: string) => {
 
 export const getProvider = () => {
   const privateKey = process.env.NEXT_PUBLIC_PRIVATE_KEY!;
-  const keypair = Keypair.fromSecretKey(bs58.decode(privateKey));
+  const keypair = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(privateKey)));
   const connection = new Connection(process.env.NEXT_PUBLIC_HELIUS_RPC_URL!);
   const provider = new AnchorProvider(connection, new NodeWallet(keypair), {
     commitment: "finalized",

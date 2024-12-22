@@ -1,3 +1,6 @@
+/**
+ * @deprecated This file is deprecated. Please use the new `src/app/api/actions/swap/route.ts` file instead.
+ */
 import { ActionGetResponse, ActionPostRequest, ActionPostResponse, createPostResponse } from "@solana/actions";
 import { actionErrorResponse, actionHeaders, getProvider, getSplTokenBalance, iconUrl, transferSplTokens } from "../../utils";
 import {
@@ -105,7 +108,7 @@ export const POST = async (req: Request) => {
   // TODO: send SOL to the "agent" wallet
   try {
     const privateKey = process.env.NEXT_PUBLIC_PRIVATE_KEY!;
-    const keypair = Keypair.fromSecretKey(bs58.decode(privateKey));
+    const keypair = Keypair.fromSecretKey(Uint8Array.from(bs58.decode(privateKey)));
 
     const connection = new Connection(
       process.env.NEXT_PUBLIC_HELIUS_RPC_URL!,
