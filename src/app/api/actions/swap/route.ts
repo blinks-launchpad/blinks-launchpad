@@ -5,8 +5,27 @@ import {
 } from "@solana/actions";
 import { actionErrorResponse, actionHeaders } from "../utils";
 import axios from "axios";
+import { initSdk } from "@/lib/raydium/config";
+import { PublicKey } from "@solana/web3.js";
+import { ApiV3Token } from "@raydium-io/raydium-sdk-v2";
 
 const RAYDIUM_SWAP_TX_URL = "https://share.raydium.io/dialect/actions/swap/tx";
+
+function getTokenMint(mint: string): PublicKey {
+  if (mint.toLowerCase() === "sol") {
+    return new PublicKey("So11111111111111111111111111111111111111112");
+  } else {
+    return new PublicKey(mint);
+  }
+}
+
+function getDisplaySymbol(tokenData: ApiV3Token) {
+  if (tokenData.symbol === "WSOL") {
+    return "SOL"
+  }
+
+  return tokenData.symbol;
+}
 
 export const GET = async (req: Request) => {
   // Get query param from request url: inputMint, outputMint
@@ -21,33 +40,62 @@ export const GET = async (req: Request) => {
 
   const baseHref = `/api/actions/swap?inputMint=${inputMint}&outputMint=${outputMint}`;
 
+  // init raydium sdk
+  const raydium = await initSdk();
+  const [inputToken, outputToken] = await raydium.api.getTokenInfo([
+    getTokenMint(inputMint),
+    getTokenMint(outputMint),
+  ]);
+
+  console.log(inputToken, outputToken);
+
+  if (!inputToken || !outputToken) {
+    const missingMint = inputToken ? outputMint : inputMint;
+    const payload: ActionGetResponse = {
+      icon: "https://img-v1.raydium.io/share/b11dae84-5676-453c-9989-e17d021a1fc2.png",
+      title: `Token not found in Raydium`,
+      description: `Token with mint ${missingMint} not found in Raydium. Please create a pool for your token first.`,
+      label: `OK`,
+    };
+    return new Response(JSON.stringify(payload), {
+      headers: actionHeaders,
+    });
+  }
+
+  const [inputSymbol, outputSymbol] = [
+    getDisplaySymbol(inputToken),
+    getDisplaySymbol(outputToken),
+  ];
+
+  console.log(`swapping ${inputSymbol} for ${outputSymbol}`);
+
   const payload: ActionGetResponse = {
     icon: "https://img-v1.raydium.io/share/b11dae84-5676-453c-9989-e17d021a1fc2.png",
-    title: "Buy RAY with SOL",
+    title: `Buy ${outputSymbol} with ${inputSymbol}`,
     description:
-      "Choose a SOL amount from the options below or enter a custom amount.",
-    label: "Buy RAY",
+      `Choose a ${inputSymbol} amount from the options below or enter a custom amount.`,
+    label: `Buy ${outputSymbol}`,
     links: {
       actions: [
         {
-          label: "0.1 SOL",
+          label: `0.1 ${inputSymbol}`,
           href: `${baseHref}&amount=0.1`,
           type: "post",
         },
         {
-          label: "1 SOL",
+          label: `1 ${inputSymbol}`,
           href: `${baseHref}&amount=1`,
           type: "post",
         },
         {
-          label: "5 SOL",
+          label: `5 ${inputSymbol}`,
           href: `${baseHref}&amount=5`,
           type: "post",
         },
         {
-          label: "Buy RAY",
+          label: `Buy ${outputSymbol}`,
           href: `${baseHref}&amount={amount}`,
-          parameters: [{ name: "amount", label: "Enter a custom amount" }],
+          parameters: [{ name: "amount", label: `Enter a custom amount` }],
           type: "post",
         },
       ],
