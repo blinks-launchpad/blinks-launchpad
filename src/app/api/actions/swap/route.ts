@@ -156,5 +156,6 @@ export const POST = async (req: Request) => {
     return Response.json(payload, { headers: actionHeaders });
   } catch (error) {
     console.error(error);
+    return actionErrorResponse("Failed to swap tokens");
   }
 };
